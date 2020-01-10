@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Challenges": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "OUTPUT_PATH": "output"
+      }
+    }
+  }
+}
