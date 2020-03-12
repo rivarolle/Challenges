@@ -62,6 +62,41 @@
     1 3 4
     1 3 7
 
+
+    10
+    10 1
+    13 23 23 23 27 27 52 52 53 53
+    11 1
+    5 20 20 24 29 51 51 51 73 78 92
+    3 3
+    18 32 38 46 52 58 60 66 72 78
+    4 3
+    36 37 38 39 42 43 43 44 44 45 48 49 49 50 50 51 54 55 56 57
+    1 8
+    16
+    4 2
+    18 20 22 23 25 28 31 33 36 44
+    2 18
+    0 3 6 9 12 15 18 21 24 27 30 33 36 39 42 45 48 51 54
+    2 19
+    19 19 19 19 19 19 19 19 19 19 19 19 19 19 19 19 19 19 19 19
+    5 2
+    24 24 24 24 24 24 24 24 24 24 53 53 53 53 82
+    3 4
+    0 8 16 17 24 25 32 33 34 41 42 50 51 59 68
+
+    Output
+    13 23 23 23 27 27 52 52 53 53
+    5 20 20 24 29 51 51 51 73 78 92
+    6 20 26
+    12 13 18 19
+    2
+    9 11 14 22
+    0 3
+    1 1
+    12 12 12 12 41
+    0 8 17
+
  */
 
 using System;
@@ -91,32 +126,31 @@ namespace Challenges.Algorithms.Advanced
 
         }
 
-        private static List<int[]> Generate1Sum(int[] sequence)
+        private static List<int[]> Generate1Sum(int length)
         {
             List<int[]> TheSum = new List<int[]>();
-            for (var i = 0; i < sequence.Length; i++)
+            for (var i = 0; i < length; i++)
             {
-                TheSum.Add(new[]{sequence[i]});
+                TheSum.Add(new[]{i});
             }
 
             return TheSum;
         }
 
-        private static List<int[]> GeneratekSum(int k, int[] sequence)
+        private static List<int[]> GeneratekSum(int k, int length)
         {
-            if (k == 1) return Generate1Sum(sequence);
+            if (k == 1) return Generate1Sum(length);
 
-            List<int[]> ThePreviousSum = GeneratekSum(k - 1, sequence);
+            List<int[]> ThePreviousSum = GeneratekSum(k - 1, length);
 
             List<int[]> TheKSum = new List<int[]>();
 
             for (var i = 0; i < ThePreviousSum.Count; i++)
             {
-                var lastIndexValue = ThePreviousSum[i][k - 2];
-                var lastIndex = Array.IndexOf<int>(sequence, lastIndexValue);
-                for (var j = lastIndex; j < sequence.Length; j++)
+                var lastIndex = ThePreviousSum[i][k - 2];
+                for (var j = lastIndex; j < length; j++)
                 {
-                    var newSum = ThePreviousSum[i].Concat(new[] {sequence[j]}).ToArray();
+                    var newSum = ThePreviousSum[i].Concat(new[] {j}).ToArray();
                     TheKSum.Add(newSum);
                 }
             }
@@ -125,27 +159,42 @@ namespace Challenges.Algorithms.Advanced
             return TheKSum;
         }
 
-        private static int[] GetSubSequence(int start, int end, int[] sequence, int[] topLevelKSum, int k, int n)
+        private static int[] GetSubSequence(int[] currentSequence, int[] topLevelKSum, int k, int n)
         {
-            for (var i = start; i < end; i++)
+            if (n <= currentSequence.Length) return currentSequence;
+
+            var lastElement = currentSequence[currentSequence.Length - 1];
+            var secondToLastElement = currentSequence[currentSequence.Length - 2];
+
+            for(var i = secondToLastElement; i <= lastElement; i++)
             {
-                var newSequence = sequence.Concat(new[] {i, end}).ToArray();
-                var ThePermutations = GeneratekSum(k, newSequence);
-                var TheSum = ThePermutations.Select(x => x.Sum()).ToArray();
+                var newSequence = new int[currentSequence.Length + 1];
+                Array.Copy(currentSequence, newSequence,currentSequence.Length-1);
+                newSequence[newSequence.Length - 2] = i;
+                newSequence[newSequence.Length - 1] = lastElement;
+                var ThePermutations = GeneratekSum(k, newSequence.Length);
+                var TheSum = ThePermutations.Select(p => p.Select(index => newSequence[index]).Sum()).ToArray();
+
                 if (IsValidSubKSum(topLevelKSum, TheSum))
                 {
-                    if (newSequence.Length == n) return newSequence;
-
-                    return GetSubSequence(i + 1, end, sequence.Concat(new[]{i}).ToArray(), topLevelKSum, k, n);
+                    return GetSubSequence(newSequence, topLevelKSum, k, n);
                 }
             }
 
-            return sequence;
+            return currentSequence;
+
         }
 
         private static bool IsValidSubKSum(int[] topLevelKSum, int[] subKSum)
         {
-            return !subKSum.Except(topLevelKSum).Any();
+            if (subKSum.Except(topLevelKSum).Any()) return false;
+
+            foreach (var sum in subKSum)
+            {
+                if (topLevelKSum.Count(s => s == sum) != subKSum.Count(s => s == sum)) return false;
+            }
+
+            return true;
         }
         
         private static int[] GenerateInitialSequence(int[][] testCase)
@@ -156,14 +205,14 @@ namespace Challenges.Algorithms.Advanced
 
             if (n == 1) return new[] {kSums[0] / k};
 
-            var firstElement = kSums[0] / k;
-            var lastElement = kSums[^1] / k;
+            var firstElement = kSums.Min() / k;
+            var lastElement = kSums.Max() / k;
 
             if (n == 2) return new[] {firstElement, lastElement};
 
-            var sequence = GetSubSequence(firstElement + 1, lastElement, new int[]{firstElement}, kSums, k, n);
+            var sequence = GetSubSequence(new int[]{firstElement, lastElement}, kSums, k, n);
 
-            return sequence;;
+            return sequence;
         }
 
     }
